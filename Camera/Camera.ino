@@ -4,16 +4,23 @@
 #include "Arduino.h"
 #include "fb_gfx.h"
 #include "soc/soc.h" 
+#include <WiFiClientSecure.h>
 #include "soc/rtc_cntl_reg.h"
 #include "esp_camera.h"
 #include "esp_http_server.h"
+#include "Base64.h"
 
-const char* ssid = "IME-WIFI_NOVO";
-const char* password = "";
- 
+const char* ssid = "RedeTeste";
+const char* password = "Testeapenas";
+const char* host = "script.google.com";
+String archivename = "filename=ESP32-CAM.jpg";
+String mimeType = "&mimetype=image/jpeg";
+String image = "&data=";
+String Script = "/macros/s/AKfycbyxmsH0HFBdZpevsqqv4eRW26yKm7ir_xoTcsCqGPqkjAxOyG2RiEXQxRN90htMDR12FA/exec";
+int wait = 10000;
+
 #define PART_BOUNDARY "123456789000000000000987654321"
- 
-// Configuração do modelo de câmera (CAMERA_MODEL_AI_THINKER)
+
   #define PWDN_GPIO_NUM     32
   #define RESET_GPIO_NUM    -1
   #define XCLK_GPIO_NUM      0
@@ -30,6 +37,7 @@ const char* password = "";
   #define VSYNC_GPIO_NUM    25
   #define HREF_GPIO_NUM     23
   #define PCLK_GPIO_NUM     22
+  #define flash 4
  
 static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
@@ -123,12 +131,121 @@ void startCameraServer()
   .handler   = stream_handler,
   .user_ctx  = NULL
  };
-   
  //Serial.printf("Starting web server on port: '%d'\n", config.server_port);
  if (httpd_start(&stream_httpd, &config) == ESP_OK) 
  {
   httpd_register_uri_handler(stream_httpd, &index_uri);
  }
+}
+
+void Capture() 
+{
+ Serial.println("Connecting to " + String(host));
+ WiFiClientSecure client;
+ if (client.connect(host, 443)) 
+ {
+  Serial.println("Success!");
+  camera_fb_t * fb = NULL;
+  digitalWrite(flash, HIGH);
+  delay(100);
+  fb = esp_camera_fb_get();
+  digitalWrite(flash, LOW);
+  delay(100);    
+  if(!fb) 
+  {    
+   Serial.println("Failure to capture image!");
+   delay(1000);
+   ESP.restart();
+   return;   
+  }
+  char *input = (char *)fb->buf;
+  char output[base64_enc_len(3)];
+  String imageFile = ""; 
+  for (int i=0; i<fb->len; i++) 
+  {
+   base64_encode(output, (input++), 3);
+   if (i%3==0) imageFile += urlencode(String(output));
+  }  
+  String Data = archivename + mimeType + image;
+  esp_camera_fb_return(fb); 
+  Serial.println("Sending to Google Drive.");
+  client.println("POST " + Script + " HTTP/1.1");
+  client.println("Host: " + String(host));
+  client.println("Content-Length: " + String(Data.length() + imageFile.length()));
+  client.println("Content-Type: application/x-www-form-urlencoded");
+  client.println();
+  client.print(Data);
+  int Index;  
+  for (Index = 0; Index < imageFile.length(); Index = Index + 1000) 
+  {
+   client.print(imageFile.substring(Index, Index + 1000));
+  }
+  Serial.println("Waiting."); 
+  long int starttime = millis();
+  while (!client.available())
+  {
+   Serial.print(".");
+   delay(100);
+   if ((starttime + wait) < millis()) 
+   {
+    Serial.println();
+    Serial.println("No answer.");
+    break;
+   }
+  }
+  Serial.println();   
+  while (client.available()) 
+  {
+   Serial.print(char(client.read())); 
+  }  
+ } 
+ else 
+ {         
+  Serial.println("Connection " + String(host) + " failed.");
+ }
+ client.stop();
+}
+ 
+ 
+String urlencode(String str) 
+{
+ String encodedString = "";
+ char c;
+ char code0;
+ char code1;
+ char code2;
+ for (int i = 0; i < str.length(); i++)
+ {
+  c = str.charAt(i);
+  if (c == ' ')
+  {
+   encodedString += '+';
+  } 
+  else if (isalnum(c))
+  {
+   encodedString += c;
+  } 
+  else
+  {
+   code1 = (c & 0xf) + '0';
+   if ((c & 0xf) > 9)
+   {
+    code1 = (c & 0xf) - 10 + 'A';
+   }
+   c = (c>>4)&0xf;
+   code0 = c + '0';
+   if (c > 9)
+   {
+    code0=c - 10 + 'A';
+   }
+   code2 = '\0';
+   encodedString += '%';
+   encodedString += code0;
+   encodedString += code1;
+  }
+  yield();
+ }
+ return encodedString;
 }
  
 void setup() 
@@ -136,7 +253,7 @@ void setup()
  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
  Serial.begin(115200);
  Serial.setDebugOutput(false);
-   
+ pinMode(flash, OUTPUT);
  camera_config_t config;
  config.ledc_channel = LEDC_CHANNEL_0;
  config.ledc_timer = LEDC_TIMER_0;
@@ -162,14 +279,12 @@ void setup()
  config.jpeg_quality = 10;
  config.fb_count = 2;
    
- // Iniciação da câmera
  esp_err_t err = esp_camera_init(&config);
  if (err != ESP_OK) 
  {
   Serial.printf("Camera init failed with error 0x%x", err);
   return;
  }
- // Conexão WiFi
  WiFi.begin(ssid, password);
  while (WiFi.status() != WL_CONNECTED) 
  {
@@ -178,8 +293,6 @@ void setup()
  }
  Serial.println("");
  Serial.println("WiFi connected");
-   
- // Início da transmissão no servidor Web
  startCameraServer();
  Serial.print("Camera Stream Ready! Go to: http://");
  Serial.print(WiFi.localIP());
@@ -187,5 +300,6 @@ void setup()
  
 void loop() 
 {
- delay(1);
+ Capture();
+ delay(1000);
 }
