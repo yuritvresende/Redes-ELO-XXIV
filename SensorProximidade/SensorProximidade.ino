@@ -1,6 +1,7 @@
 const int PIN_TO_SENSOR = 33; // GIOP19 pin connected to OUTPUT pin of sensor
 int pinStateCurrent   = LOW;  // current state of pin
 int pinStatePrevious  = LOW;  // previous state of pin
+const int PIN_WRITE = 34;
 
 void setup() 
 {
@@ -15,10 +16,12 @@ void loop()
 
  if (pinStatePrevious == LOW && pinStateCurrent == HIGH) 
  {  
+  digitalWrite(PIN_WRITE) == 0;
   Serial.println("Motion detected!");
  }
  else if (pinStatePrevious == HIGH && pinStateCurrent == LOW) 
  {   
+  digitalWrite(PIN_WRITE) == 1;
   Serial.println("Motion stopped!");
  }
 }
