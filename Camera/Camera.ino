@@ -18,6 +18,7 @@ const char* password = "Testeapenas";
 AsyncWebServer server(80);
 
 boolean takeNewPhoto = false;
+boolean detected; 
 
 #define FILE_PHOTO "/photo.jpg"
 
@@ -49,15 +50,6 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-  <div id="container">
-    <h2>ESP32-CAM Last Photo</h2>
-    <p>It might take more than 5 seconds to capture a photo.</p>
-    <p>
-      <button onclick="rotatePhoto();">ROTATE</button>
-      <button onclick="capturePhoto()">CAPTURE PHOTO</button>
-      <button onclick="location.reload();">REFRESH PAGE</button>
-    </p>
-  </div>
   <div><img src="http://192.168.43.122/saved-photo" id="photo" width="70%"></div>
 </body>
 <script>
@@ -67,14 +59,12 @@ const char index_html[] PROGMEM = R"rawliteral(
     xhr.open('GET', "http://192.168.43.122/capture", true);
     xhr.send();
   }
-  function rotatePhoto() {
-    var img = document.getElementById("photo");
-    deg += 90;
-    if(isOdd(deg/90)){ document.getElementById("container").className = "vert"; }
-    else{ document.getElementById("container").className = "hori"; }
-    img.style.transform = "rotate(" + deg + "deg)";
-  }
   function isOdd(n) { return Math.abs(n % 2) == 1; }
+  if(detected) 
+  {
+   capturePhoto();
+   delay(1500);
+  }
 </script>
 </html>)rawliteral";
 
@@ -162,6 +152,7 @@ void setup()
   request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
  });
  server.begin();
+ pinMode(13, INPUT);
 }
 
 bool checkPhoto( fs::FS &fs )
@@ -186,7 +177,6 @@ void capturePhotoSaveSpiffs()
   }
   Serial.printf("Picture file name: %s\n", FILE_PHOTO);
   File file = SPIFFS.open(FILE_PHOTO, FILE_WRITE);
-
   if (!file) 
   {
    Serial.println("Failed to open file in writing mode");
@@ -200,7 +190,6 @@ void capturePhotoSaveSpiffs()
    Serial.print(file.size());
    Serial.println(" bytes");
   }
-
   file.close();
   esp_camera_fb_return(fb);
   ok = checkPhoto(SPIFFS);
@@ -210,7 +199,16 @@ void capturePhotoSaveSpiffs()
 
 void loop() 
 {
- if (takeNewPhoto) 
+ if(!digitalRead(13))
+ {
+  Serial.println("Detected.");
+  detected = true; 
+ }
+ else
+ {
+  detected = false;
+ }
+ if (detected) 
  {
   capturePhotoSaveSpiffs();
   takeNewPhoto = false;
