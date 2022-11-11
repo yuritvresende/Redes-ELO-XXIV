@@ -64,7 +64,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   var deg = 0;
   function capturePhoto() {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', "/capture", true);
+    xhr.open('GET', "HTTP://192.168.43.122/capture", true);
     xhr.send();
   }
   function rotatePhoto() {
