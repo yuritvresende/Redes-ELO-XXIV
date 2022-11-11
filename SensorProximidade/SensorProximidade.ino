@@ -16,12 +16,12 @@ void loop()
 
  if (pinStatePrevious == LOW && pinStateCurrent == HIGH) 
  {  
-  digitalWrite(PIN_WRITE) == 0;
+  digitalWrite(PIN_WRITE, LOW);
   Serial.println("Motion detected!");
  }
  else if (pinStatePrevious == HIGH && pinStateCurrent == LOW) 
  {   
-  digitalWrite(PIN_WRITE) == 1;
+  digitalWrite(PIN_WRITE, HIGH);
   Serial.println("Motion stopped!");
  }
 }

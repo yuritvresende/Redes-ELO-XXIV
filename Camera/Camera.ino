@@ -166,7 +166,7 @@ void setup()
 
 void loop() 
 {
- if (digitalRead(XCLK_GPIO_NUM) = LOW)
+ if (digitalRead(XCLK_GPIO_NUM) == LOW)
  {
   capturePhotoSaveSpiffs();
   takeNewPhoto = false;
