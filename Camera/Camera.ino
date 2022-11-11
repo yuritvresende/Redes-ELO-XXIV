@@ -161,16 +161,10 @@ void setup()
   request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
  });
  server.begin();
- pinMode(XCLK_GPIO_NUM, INPUT);
 }
 
 void loop() 
 {
- if (digitalRead(XCLK_GPIO_NUM) == LOW)
- {
-  capturePhotoSaveSpiffs();
-  takeNewPhoto = false;
- }
  if (takeNewPhoto) 
  {
   capturePhotoSaveSpiffs();
