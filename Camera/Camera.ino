@@ -164,16 +164,6 @@ void setup()
  server.begin();
 }
 
-void loop() 
-{
- if (takeNewPhoto) 
- {
-  capturePhotoSaveSpiffs();
-  takeNewPhoto = false;
- }
- delay(1);
-}
-
 bool checkPhoto( fs::FS &fs )
 {
  File f_pic = fs.open( FILE_PHOTO );
@@ -181,7 +171,7 @@ bool checkPhoto( fs::FS &fs )
  return ( pic_sz > 100 );
 }
 
-void capturePhotoSaveSpiffs( void ) 
+void capturePhotoSaveSpiffs() 
 {
  camera_fb_t * fb = NULL; 
  bool ok = 0; 
@@ -194,7 +184,6 @@ void capturePhotoSaveSpiffs( void )
    Serial.println("Camera capture failed");
    return;
   }
-
   Serial.printf("Picture file name: %s\n", FILE_PHOTO);
   File file = SPIFFS.open(FILE_PHOTO, FILE_WRITE);
 
@@ -217,4 +206,14 @@ void capturePhotoSaveSpiffs( void )
   ok = checkPhoto(SPIFFS);
  } 
  while ( !ok );
+}
+
+void loop() 
+{
+ if (takeNewPhoto) 
+ {
+  capturePhotoSaveSpiffs();
+  takeNewPhoto = false;
+ }
+ delay(1);
 }
