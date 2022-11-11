@@ -58,13 +58,13 @@ const char index_html[] PROGMEM = R"rawliteral(
       <button onclick="location.reload();">REFRESH PAGE</button>
     </p>
   </div>
-  <div><img src="saved-photo" id="photo" width="70%"></div>
+  <div><img src="http://192.168.43.122/saved-photo" id="photo" width="70%"></div>
 </body>
 <script>
   var deg = 0;
   function capturePhoto() {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', "HTTP://192.168.43.122/capture", true);
+    xhr.open('GET', "http://192.168.43.122/capture", true);
     xhr.send();
   }
   function rotatePhoto() {
