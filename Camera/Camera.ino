@@ -144,11 +144,12 @@ void setup()
   Serial.printf("Camera init failed with error 0x%x", err);
   ESP.restart();
  }
-
- server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) 
- {
-  request->send_P(200, "text/html", index_html);
- });
+  
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", index_html);
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    request->send(response);
+  });
 
  server.on("/capture", HTTP_GET, [](AsyncWebServerRequest * request)
  {
