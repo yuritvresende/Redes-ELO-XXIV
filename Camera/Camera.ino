@@ -146,7 +146,7 @@ void setup()
  }
   
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", index_html);
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html);
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
   });
