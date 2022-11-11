@@ -51,10 +51,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <div><img src="http://192.168.43.122/saved-photo" id="photo" width="70%"></div>
 </body>
-<script>
-  var deg = 0;
-  function isOdd(n) { return Math.abs(n % 2) == 1; }
-</script>
 </html>)rawliteral";
 
 void setup() 
@@ -76,12 +72,9 @@ void setup()
   delay(500);
   Serial.println("SPIFFS mounted successfully");
  }
-
  Serial.print("IP Address: http://");
  Serial.println(WiFi.localIP());
-
  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
-
  camera_config_t config;
  config.ledc_channel = LEDC_CHANNEL_0;
  config.ledc_timer = LEDC_TIMER_0;
@@ -120,8 +113,7 @@ void setup()
  {
   Serial.printf("Camera init failed with error 0x%x", err);
   ESP.restart();
- }
-  
+ } 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html);
     response->addHeader("Access-Control-Allow-Origin", "*");
