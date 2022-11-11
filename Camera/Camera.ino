@@ -17,7 +17,6 @@ const char* password = "Testeapenas";
 
 AsyncWebServer server(80);
 
-boolean takeNewPhoto = false;
 boolean detected; 
 
 #define FILE_PHOTO "/photo.jpg"
@@ -54,17 +53,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 </body>
 <script>
   var deg = 0;
-  function capturePhoto() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', "http://192.168.43.122/capture", true);
-    xhr.send();
-  }
   function isOdd(n) { return Math.abs(n % 2) == 1; }
-  if(detected) 
-  {
-   capturePhoto();
-   delay(1500);
-  }
 </script>
 </html>)rawliteral";
 
@@ -114,7 +103,6 @@ void setup()
  config.pin_reset = RESET_GPIO_NUM;
  config.xclk_freq_hz = 20000000;
  config.pixel_format = PIXFORMAT_JPEG;
-
  if (psramFound())
  {
   config.frame_size = FRAMESIZE_UXGA;
@@ -127,7 +115,6 @@ void setup()
   config.jpeg_quality = 12;
   config.fb_count = 1;
  }
-
  esp_err_t err = esp_camera_init(&config);
  if (err != ESP_OK) 
  {
@@ -140,13 +127,6 @@ void setup()
     response->addHeader("Access-Control-Allow-Origin", "*");
     request->send(response);
   });
-
- server.on("/capture", HTTP_GET, [](AsyncWebServerRequest * request)
- {
-  takeNewPhoto = true;
-  request->send_P(200, "text/plain", "Taking Photo");
- });
-
  server.on("/saved-photo", HTTP_GET, [](AsyncWebServerRequest * request) 
  {
   request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
@@ -183,7 +163,7 @@ void capturePhotoSaveSpiffs()
   }
   else
   {
-   file.write(fb->buf, fb->len); // payload (image), payload length
+   file.write(fb->buf, fb->len); 
    Serial.print("The picture has been saved in ");
    Serial.print(FILE_PHOTO);
    Serial.print(" - Size: ");
@@ -211,7 +191,6 @@ void loop()
  if (detected) 
  {
   capturePhotoSaveSpiffs();
-  takeNewPhoto = false;
  }
  delay(1);
 }
