@@ -14,7 +14,7 @@
 // Substituir com nome e senha da rede a ser usada.
 const char* ssid = "RedeTeste";
 const char* password = "Testeapenas";
-
+// Criação de um servidor web assíncrono na porta 80.
 AsyncWebServer server(80);
 
 boolean detected; 
@@ -38,6 +38,7 @@ boolean detected;
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
+// Criação de um servidor para exibição das fotografias capturadas pela câmera.
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -56,24 +57,29 @@ const char index_html[] PROGMEM = R"rawliteral(
 void setup() 
 {
  Serial.begin(115200);
+ // Início da conexão via Wi-Fi
  WiFi.begin(ssid, password);
+ // Enquanto a conexão não estiver estabelecida, o monitor serial irá exibir a mensagem a seguir.
  while (WiFi.status() != WL_CONNECTED) 
  {
   delay(1000);
-  Serial.println("Connecting to WiFi...");
+  Serial.println("Conectando ao Wi-Fi...");
  }
+ // Início de um sistema de arquivos padronizado.
  if (!SPIFFS.begin(true)) 
  {
-  Serial.println("An Error has occurred while mounting SPIFFS");
+  Serial.println("Erro detectado ao inicializar SPIFFS.");
   ESP.restart();
  }
  else
  {
   delay(500);
-  Serial.println("SPIFFS mounted successfully");
+  Serial.println("SPIFFS criado com sucesso.");
  }
- Serial.print("IP Address: http://");
+ Serial.print("Endereço IP: http://");
+ // Exibição do endereço do servidor de envio dos arquivos, a depender da rede utilizada.
  Serial.println(WiFi.localIP());
+ // Configurações necessárias para o uso da câmera, tanto em relação à pinagem do módulo em sua execução quanto à qualidade e ao tamanho dos arquivos de foto.
  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
  camera_config_t config;
  config.ledc_channel = LEDC_CHANNEL_0;
@@ -108,25 +114,31 @@ void setup()
   config.jpeg_quality = 12;
   config.fb_count = 1;
  }
+ // Verificação de erro nas configurações.
  esp_err_t err = esp_camera_init(&config);
  if (err != ESP_OK) 
  {
-  Serial.printf("Camera init failed with error 0x%x", err);
+  Serial.printf("Inicialização da câmera falhou com erro 0x%x", err);
   ESP.restart();
  } 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html);
-    response->addHeader("Access-Control-Allow-Origin", "*");
-    request->send(response);
-  });
+ // Definições do processo de acesso ao servidor por um cliente ou por outros servidores intermediários e da autorização para salvar fotos exibidas.
+ server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+ {
+  AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html);
+  response->addHeader("Access-Control-Allow-Origin", "*");
+  request->send(response);
+ });
  server.on("/saved-photo", HTTP_GET, [](AsyncWebServerRequest * request) 
  {
   request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
  });
+ // Efetiva implementação do servidor.
  server.begin();
+ // Escolha de um pino do módulo de câmera para identificar variações de nível de tensão.
  pinMode(13, INPUT);
 }
 
+// Função para informar se a foto foi arquivada adequadamente no sistema.
 bool checkPhoto( fs::FS &fs )
 {
  File f_pic = fs.open( FILE_PHOTO );
@@ -134,29 +146,31 @@ bool checkPhoto( fs::FS &fs )
  return ( pic_sz > 100 );
 }
 
+// Função implementada para tirar a foto e salvar no sistema.
 void capturePhotoSaveSpiffs() 
 {
  camera_fb_t * fb = NULL; 
  bool ok = 0; 
  do 
  {
-  Serial.println("Taking a photo...");
+  Serial.println("Capturando fotografia...");
   fb = esp_camera_fb_get();
   if (!fb) 
   {
-   Serial.println("Camera capture failed");
+   Serial.println("Captura sem sucesso.");
    return;
   }
-  Serial.printf("Picture file name: %s\n", FILE_PHOTO);
+  // Exibe o nome do arquivo da fotografia.
+  Serial.printf("Nome do arquivo: %s\n", FILE_PHOTO);
   File file = SPIFFS.open(FILE_PHOTO, FILE_WRITE);
   if (!file) 
   {
-   Serial.println("Failed to open file in writing mode");
+   Serial.println("Falha ao abrir arquivo.");
   }
   else
   {
    file.write(fb->buf, fb->len); 
-   Serial.print("The picture has been saved in ");
+   Serial.print("Fotografia salva em ");
    Serial.print(FILE_PHOTO);
    Serial.print(" - Size: ");
    Serial.print(file.size());
@@ -164,6 +178,7 @@ void capturePhotoSaveSpiffs()
   }
   file.close();
   esp_camera_fb_return(fb);
+  // Verifica se ao fim do processo a fotografia foi corretamente armazenada. Retorna ao loop caso contrário.
   ok = checkPhoto(SPIFFS);
  } 
  while ( !ok );
@@ -171,9 +186,10 @@ void capturePhotoSaveSpiffs()
 
 void loop() 
 {
+ // Dada condição de o pino 13 estar naturalmente em nível de tensão alto, um comando de gatilho for fornecido deve baixar o nível da tensão para registrar a fotografia.
  if(!digitalRead(13))
  {
-  Serial.println("Detected.");
+  Serial.println("Comando detectado.");
   detected = true; 
  }
  else
