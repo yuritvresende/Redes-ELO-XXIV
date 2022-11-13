@@ -50,6 +50,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
+  // O endereço IP abaixo registrado é correspondente ao da rede usada nos testes, deve ser trocado ou removido.
   <div><img src="http://192.168.43.122/saved-photo" id="photo" width="70%"></div>
 </body>
 </html>)rawliteral";
